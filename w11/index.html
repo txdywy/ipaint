@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paint</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Title Bar -->
+    <div class="title-bar">
+        <div class="title-bar-left">
+            <svg class="paint-logo" viewBox="0 0 16 16" width="16" height="16">
+                <rect x="1" y="1" width="14" height="14" rx="2" fill="#f5f5f5" stroke="#ccc" stroke-width="0.5"/>
+                <path d="M3 12L5 8L7 10L9 6L11 9L13 4" stroke="#0078d4" stroke-width="1.5" fill="none"/>
+            </svg>
+            <span class="title-text" id="titleText">Untitled</span>
+            <span class="title-saved" id="titleSaved">&#x2713;</span>
+        </div>
+        <div class="title-bar-center">
+            <div class="tab-bar">
+                <button class="tab-btn active" data-tab="home">Home</button>
+                <button class="tab-btn" data-tab="view">View</button>
+            </div>
+        </div>
+        <div class="title-bar-right">
+            <button class="win-btn minimize" aria-label="Minimize"></button>
+            <button class="win-btn maximize" aria-label="Maximize"></button>
+            <button class="win-btn close" aria-label="Close"></button>
+        </div>
+    </div>
+
+    <!-- Ribbon Toolbar -->
+    <div class="ribbon" id="ribbon">
+        <!-- Home Tab -->
+        <div class="ribbon-tab active" id="tab-home">
+            <!-- Clipboard Section -->
+            <div class="ribbon-section">
+                <div class="ribbon-section-content">
+                    <button class="ribbon-btn icon-btn" data-action="paste" title="Paste (Ctrl+V)">
+                        <svg viewBox="0 0 20 20"><rect x="4" y="2" width="12" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="6" y="1" width="8" height="3" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+                        <span>Paste</span>
+                    </button>
+                    <div class="ribbon-btn-group">
+                        <button class="ribbon-btn small" data-action="cut" title="Cut (Ctrl+X)">
+                            <svg viewBox="0 0 16 16"><circle cx="5" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="11" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="6.5" y1="10" x2="10" y2="2" stroke="currentColor" stroke-width="1.2"/><line x1="9.5" y1="10" x2="6" y2="2" stroke="currentColor" stroke-width="1.2"/></svg>
+                        </button>
+                        <button class="ribbon-btn small" data-action="copy" title="Copy (Ctrl+C)">
+                            <svg viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M3 11V3h8" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="ribbon-section-label">Clipboard</div>
+            </div>
+
+            <div class="ribbon-divider"></div>
+
+            <!-- Image Section -->
+            <div class="ribbon-section">
+                <div class="ribbon-section-content">
+                    <button class="ribbon-btn icon-btn" data-action="select" data-tool="rectSelect" title="Select">
+                        <svg viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="3,2"/></svg>
+                        <span>Select</span>
+                    </button>
+                    <button class="ribbon-btn icon-btn" data-action="crop" title="Crop">
+                        <svg viewBox="0 0 20 20"><path d="M5 1v14h14M1 5h14v14" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+                        <span>Crop</span>
+                    </button>
+                    <button class="ribbon-btn icon-btn" data-action="resize" title="Resize">
+                        <svg viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M13 17l4-4M17 17v-4h-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+                        <span>Resize</span>
+                    </button>
+                    <button class="ribbon-btn icon-btn" data-action="rotate" title="Rotate">
+                        <svg viewBox="0 0 20 20"><path d="M14 3a7 7 0 11-9 3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M14 3l-3 1 1-3" fill="currentColor"/></svg>
+                        <span>Rotate</span>
+                    </button>
+                </div>
+                <div class="ribbon-section-label">Image</div>
+            </div>
+
+            <div class="ribbon-divider"></div>
+
+            <!-- Tools Section -->
+            <div class="ribbon-section tools-section">
+                <div class="ribbon-section-content tools-grid">
+                    <button class="tool-btn" data-tool="pencil" title="Pencil (P)">
+                        <svg viewBox="0 0 20 20"><path d="M4 16L14 6l2 2L6 18H4z" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M14 6l2-2 2 2-2 2z" fill="currentColor"/></svg>
+                    </button>
+                    <button class="tool-btn" data-tool="brush" title="Brush (B)">
+                        <svg viewBox="0 0 20 20"><path d="M5 15c0-2 2-4 4-6l3-3c1-1 2-2 2-3s-1-1-2 0l-5 5c-2 2-3 4-3 6 0 1.5 1 1 1 1z" fill="currentColor"/></svg>
+                    </button>
+                    <button class="tool-btn" data-tool="eraser" title="Eraser (E)">
+                        <svg viewBox="0 0 20 20"><rect x="4" y="8" width="12" height="7" rx="1" fill="currentColor" opacity="0.3"/><rect x="4" y="8" width="12" height="3" rx="1" fill="currentColor"/></svg>
+                    </button>
+                    <button class="tool-btn" data-tool="fill" title="Fill (G)">
+                        <svg viewBox="0 0 20 20"><path d="M5 14L3 12l6-6 4 4-6 6H5z" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M14 10l2-2c1-1 2 0 1 1l-2 2c0 1-1 2-2 1" fill="currentColor"/></svg>
+                    </button>
+                    <button class="tool-btn" data-tool="text" title="Text (T)">
+                        <svg viewBox="0 0 20 20"><text x="4" y="16" font-family="Segoe UI" font-size="16" font-weight="600" fill="currentColor">A</text></svg>
+                    </button>
+                    <button class="tool-btn" data-tool="pickColor" title="Color Picker (I)">
+                        <svg viewBox="0 0 20 20"><path d="M5 15L9 11l2 2-6 4z" fill="currentColor"/><line x1="9" y1="11" x2="14" y2="6" stroke="currentColor" stroke-width="1.5"/></svg>
+                    </button>
+                    <button class="tool-btn" data-tool="magnifier" title="Magnifier (M)">
+                        <svg viewBox="0 0 20 20"><circle cx="9" cy="9" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="13" y1="13" x2="17" y2="17" stroke="currentColor" stroke-width="2"/></svg>
+                    </button>
+                </div>
+                <div class="ribbon-section-label">Tools</div>
+            </div>
+
+            <div class="ribbon-divider"></div>
+
+            <!-- Brushes Section -->
+            <div class="ribbon-section">
+                <div class="ribbon-section-content brushes-row">
+                    <button class="tool-btn" data-tool="pencil" title="Pencil">
+                        <svg viewBox="0 0 20 20"><line x1="4" y1="16" x2="14" y2="6" stroke="currentColor" stroke-width="1.5"/><polygon points="14,6 16,4 17,5 15,7" fill="currentColor"/></svg>
+                    </button>
+                    <button class="tool-btn" data-tool="brush" title="Brush">
+                        <svg viewBox="0 0 20 20"><path d="M5 15c0-2 2-4 4-6l3-3c1-1 2-2 2-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </button>
+                    <button class="tool-btn" data-tool="calligraphy" title="Calligraphy">
+                        <svg viewBox="0 0 20 20"><path d="M4 16L15 5" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M4 16L6 14" stroke="currentColor" stroke-width="1"/></svg>
+                    </button>
+                    <div class="brush-size-selector" id="brushSizeSelector">
+                        <div class="size-dot active" data-size="2" style="width:2px;height:2px"></div>
+                        <div class="size-dot" data-size="4" style="width:4px;height:4px"></div>
+                        <div class="size-dot" data-size="6" style="width:6px;height:6px"></div>
+                        <div class="size-dot" data-size="8" style="width:8px;height:8px"></div>
+                    </div>
+                </div>
+                <div class="ribbon-section-label">Brushes</div>
+            </div>
+
+            <div class="ribbon-divider"></div>
+
+            <!-- Shapes Section -->
+            <div class="ribbon-section">
+                <div class="ribbon-section-content shapes-grid">
+                    <button class="tool-btn" data-tool="line" title="Line">
+                        <svg viewBox="0 0 20 20"><line x1="3" y1="17" x2="17" y2="3" stroke="currentColor" stroke-width="1.5"/></svg>
+                    </button>
+                    <button class="tool-btn" data-tool="curve" title="Curve">
+                        <svg viewBox="0 0 20 20"><path d="M3 15C8 3 12 17 17 5" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
+                    </button>
+                    <button class="tool-btn" data-tool="rectangle" title="Rectangle">
+                        <svg viewBox="0 0 20 20"><rect x="3" y="5" width="14" height="10" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
+                    </button>
+                    <button class="tool-btn" data-tool="ellipse" title="Ellipse">
+                        <svg viewBox="0 0 20 20"><ellipse cx="10" cy="10" rx="7" ry="5" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
+                    </button>
+                    <button class="tool-btn" data-tool="polygon" title="Polygon">
+                        <svg viewBox="0 0 20 20"><polygon points="10,3 17,14 3,14" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
+                    </button>
+                    <button class="tool-btn" data-tool="roundRect" title="Rounded Rectangle">
+                        <svg viewBox="0 0 20 20"><rect x="3" y="5" width="14" height="10" rx="3" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
+                    </button>
+                </div>
+                <div class="ribbon-section-label">Shapes</div>
+            </div>
+
+            <div class="ribbon-divider"></div>
+
+            <!-- Size & Outline Section -->
+            <div class="ribbon-section">
+                <div class="ribbon-section-content size-section">
+                    <div class="size-row">
+                        <label>Size</label>
+                        <select id="sizeSelect" class="w11-select">
+                            <option value="1">1px</option>
+                            <option value="2">2px</option>
+                            <option value="3">3px</option>
+                            <option value="4" selected>4px</option>
+                            <option value="5">5px</option>
+                            <option value="8">8px</option>
+                            <option value="12">12px</option>
+                        </select>
+                    </div>
+                    <div class="outline-row">
+                        <label>Outline</label>
+                        <select id="outlineSelect" class="w11-select">
+                            <option value="solid">Solid color</option>
+                            <option value="none">No outline</option>
+                        </select>
+                    </div>
+                    <div class="fill-row">
+                        <label>Fill</label>
+                        <select id="fillSelect" class="w11-select">
+                            <option value="none">No fill</option>
+                            <option value="solid">Solid color</option>
+                            <option value="marker">Marker</option>
+                            <option value="oil">Oil</option>
+                            <option value="crayon">Crayon</option>
+                            <option value="watercolor">Watercolor</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="ribbon-section-label">Size</div>
+            </div>
+        </div>
+
+        <!-- View Tab -->
+        <div class="ribbon-tab" id="tab-view">
+            <div class="ribbon-section">
+                <div class="ribbon-section-content">
+                    <button class="ribbon-btn icon-btn" data-action="zoomIn" title="Zoom In">
+                        <svg viewBox="0 0 20 20"><circle cx="9" cy="9" r="5" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="13" y1="13" x2="17" y2="17" stroke="currentColor" stroke-width="1.5"/><line x1="7" y1="9" x2="11" y2="9" stroke="currentColor" stroke-width="1.2"/><line x1="9" y1="7" x2="9" y2="11" stroke="currentColor" stroke-width="1.2"/></svg>
+                        <span>Zoom in</span>
+                    </button>
+                    <button class="ribbon-btn icon-btn" data-action="zoomOut" title="Zoom Out">
+                        <svg viewBox="0 0 20 20"><circle cx="9" cy="9" r="5" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="13" y1="13" x2="17" y2="17" stroke="currentColor" stroke-width="1.5"/><line x1="7" y1="9" x2="11" y2="9" stroke="currentColor" stroke-width="1.2"/></svg>
+                        <span>Zoom out</span>
+                    </button>
+                    <button class="ribbon-btn icon-btn" data-action="zoomReset" title="100%">
+                        <svg viewBox="0 0 20 20"><text x="2" y="14" font-size="10" fill="currentColor">100%</text></svg>
+                        <span>100%</span>
+                    </button>
+                </div>
+                <div class="ribbon-section-label">Zoom</div>
+            </div>
+
+            <div class="ribbon-divider"></div>
+
+            <div class="ribbon-section">
+                <div class="ribbon-section-content">
+                    <label class="w11-check"><input type="checkbox" id="chkGrid" data-action="toggleGrid"> Gridlines</label>
+                    <label class="w11-check"><input type="checkbox" id="chkRuler" data-action="toggleRuler"> Rulers</label>
+                    <label class="w11-check"><input type="checkbox" id="chkStatus" checked data-action="toggleStatus"> Status bar</label>
+                </div>
+                <div class="ribbon-section-label">Show or hide</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Canvas Area -->
+    <div class="canvas-area" id="canvasArea">
+        <div class="ruler ruler-h" id="rulerH" style="display:none"></div>
+        <div class="ruler ruler-v" id="rulerV" style="display:none"></div>
+        <div class="canvas-scroll" id="canvasScroll">
+            <div class="canvas-container" id="canvasContainer">
+                <canvas id="mainCanvas" width="800" height="600"></canvas>
+                <canvas id="overlayCanvas" width="800" height="600"></canvas>
+                <div class="selection-box" id="selectionBox" style="display:none">
+                    <div class="sel-handle nw"></div><div class="sel-handle ne"></div>
+                    <div class="sel-handle sw"></div><div class="sel-handle se"></div>
+                </div>
+                <div class="text-box" id="textBox" style="display:none">
+                    <textarea id="textInput" spellcheck="false"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Color Bar -->
+    <div class="color-bar" id="colorBar">
+        <div class="color-current">
+            <div class="color-primary" id="colorPrimary" title="Primary color"></div>
+            <div class="color-secondary" id="colorSecondary" title="Secondary color"></div>
+        </div>
+        <div class="color-palette" id="colorPalette">
+            <div class="color-swatch" data-color="#000000" style="background:#000000"></div>
+            <div class="color-swatch" data-color="#7F7F7F" style="background:#7F7F7F"></div>
+            <div class="color-swatch" data-color="#880015" style="background:#880015"></div>
+            <div class="color-swatch" data-color="#ED1C24" style="background:#ED1C24"></div>
+            <div class="color-swatch" data-color="#FF7F27" style="background:#FF7F27"></div>
+            <div class="color-swatch" data-color="#FFF200" style="background:#FFF200"></div>
+            <div class="color-swatch" data-color="#22B14C" style="background:#22B14C"></div>
+            <div class="color-swatch" data-color="#00A2E8" style="background:#00A2E8"></div>
+            <div class="color-swatch" data-color="#3F48CC" style="background:#3F48CC"></div>
+            <div class="color-swatch" data-color="#A349A4" style="background:#A349A4"></div>
+            <div class="color-swatch" data-color="#FFFFFF" style="background:#FFFFFF"></div>
+            <div class="color-swatch" data-color="#C3C3C3" style="background:#C3C3C3"></div>
+            <div class="color-swatch" data-color="#B97A57" style="background:#B97A57"></div>
+            <div class="color-swatch" data-color="#FFAEC9" style="background:#FFAEC9"></div>
+            <div class="color-swatch" data-color="#FFC90E" style="background:#FFC90E"></div>
+            <div class="color-swatch" data-color="#EFE4B0" style="background:#EFE4B0"></div>
+            <div class="color-swatch" data-color="#B5E61D" style="background:#B5E61D"></div>
+            <div class="color-swatch" data-color="#99D9EA" style="background:#99D9EA"></div>
+            <div class="color-swatch" data-color="#7092BE" style="background:#7092BE"></div>
+            <div class="color-swatch" data-color="#C8BFE7" style="background:#C8BFE7"></div>
+        </div>
+        <button class="color-edit-btn" id="colorEditBtn" title="Edit colors">
+            <svg viewBox="0 0 16 16"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2z" fill="none" stroke="currentColor" stroke-width="1"/><path d="M9 9h5v5H9z" fill="currentColor"/></svg>
+        </button>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar" id="statusBar">
+        <div class="status-left">
+            <span class="status-coords" id="statusCoords"></span>
+            <span class="status-size" id="statusSize">800 x 600px</span>
+        </div>
+        <div class="status-right">
+            <span class="zoom-display" id="zoomDisplay">100%</span>
+            <div class="zoom-slider">
+                <button class="zoom-btn" data-action="zoomOut">-</button>
+                <input type="range" id="zoomSlider" min="10" max="800" value="100" step="10">
+                <button class="zoom-btn" data-action="zoomIn">+</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="contextMenu" style="display:none">
+        <div class="ctx-item" data-action="undo">Undo<span>Ctrl+Z</span></div>
+        <div class="ctx-item" data-action="redo">Redo<span>Ctrl+Y</span></div>
+        <div class="ctx-sep"></div>
+        <div class="ctx-item" data-action="cut">Cut<span>Ctrl+X</span></div>
+        <div class="ctx-item" data-action="copy">Copy<span>Ctrl+C</span></div>
+        <div class="ctx-item" data-action="paste">Paste<span>Ctrl+V</span></div>
+        <div class="ctx-sep"></div>
+        <div class="ctx-item" data-action="selectAll">Select all<span>Ctrl+A</span></div>
+        <div class="ctx-item" data-action="clearSelection">Clear selection<span>Del</span></div>
+        <div class="ctx-sep"></div>
+        <div class="ctx-item" onclick="window.location.href='../'">Classic Paint &larr;</div>
+    </div>
+
+    <!-- Dialog Overlay -->
+    <div class="dialog-overlay" id="dialogOverlay" style="display:none">
+        <!-- Resize Dialog -->
+        <div class="w11-dialog" id="resizeDialog" style="display:none">
+            <div class="dlg-title">Resize and Skew</div>
+            <div class="dlg-body">
+                <div class="dlg-tabs">
+                    <button class="dlg-tab active" data-tab="pixels">Pixels</button>
+                    <button class="dlg-tab" data-tab="percent">Percentage</button>
+                </div>
+                <div class="dlg-field">
+                    <label>Horizontal:</label>
+                    <input type="number" id="resizeW" value="800" min="1" max="9999">
+                </div>
+                <div class="dlg-field">
+                    <label>Vertical:</label>
+                    <input type="number" id="resizeH" value="600" min="1" max="9999">
+                </div>
+                <label class="w11-check"><input type="checkbox" id="resizeAspect" checked> Maintain aspect ratio</label>
+            </div>
+            <div class="dlg-buttons">
+                <button class="dlg-btn primary" data-action="ok" data-dialog="resizeDialog">Save</button>
+                <button class="dlg-btn" data-action="cancel" data-dialog="resizeDialog">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Rotate Dialog -->
+        <div class="w11-dialog" id="rotateDialog" style="display:none">
+            <div class="dlg-title">Rotate and Flip</div>
+            <div class="dlg-body rotate-options">
+                <label class="rotate-opt"><input type="radio" name="rotateDir" value="90"> Rotate right 90&deg;</label>
+                <label class="rotate-opt"><input type="radio" name="rotateDir" value="180"> Rotate 180&deg;</label>
+                <label class="rotate-opt"><input type="radio" name="rotateDir" value="270"> Rotate left 90&deg;</label>
+                <label class="rotate-opt"><input type="radio" name="rotateDir" value="flipH"> Flip horizontal</label>
+                <label class="rotate-opt"><input type="radio" name="rotateDir" value="flipV"> Flip vertical</label>
+            </div>
+            <div class="dlg-buttons">
+                <button class="dlg-btn primary" data-action="ok" data-dialog="rotateDialog">OK</button>
+                <button class="dlg-btn" data-action="cancel" data-dialog="rotateDialog">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Color Picker Dialog -->
+        <div class="w11-dialog color-dlg" id="colorDlg" style="display:none">
+            <div class="dlg-title">Edit Colors</div>
+            <div class="dlg-body color-dlg-body">
+                <div class="color-dlg-left">
+                    <div class="cdl-basic" id="cdlBasic"></div>
+                    <div class="cdl-custom">
+                        <canvas id="hueSatCanvas" width="200" height="200"></canvas>
+                        <div class="cdl-cursor" id="hsCursor"></div>
+                    </div>
+                    <div class="cdl-lum">
+                        <canvas id="lumCanvas" width="24" height="200"></canvas>
+                        <div class="cdl-lum-cursor" id="lumCursor"></div>
+                    </div>
+                </div>
+                <div class="color-dlg-right">
+                    <div class="cdl-preview" id="cdlPreview"></div>
+                    <div class="cdl-values">
+                        <div class="cdl-val"><label>Hue:</label><input type="number" id="cH" min="0" max="360"><span>&deg;</span></div>
+                        <div class="cdl-val"><label>Sat:</label><input type="number" id="cS" min="0" max="240"></div>
+                        <div class="cdl-val"><label>Lum:</label><input type="number" id="cL" min="0" max="240"></div>
+                        <div class="cdl-val"><label>Red:</label><input type="number" id="cR" min="0" max="255"></div>
+                        <div class="cdl-val"><label>Green:</label><input type="number" id="cG" min="0" max="255"></div>
+                        <div class="cdl-val"><label>Blue:</label><input type="number" id="cB" min="0" max="255"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="dlg-buttons">
+                <button class="dlg-btn primary" data-action="ok" data-dialog="colorDlg">OK</button>
+                <button class="dlg-btn" data-action="cancel" data-dialog="colorDlg">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Bitmap Overlay -->
+    <div class="view-bitmap" id="viewBitmap" style="display:none"></div>
+
+    <!-- Hidden file input -->
+    <input type="file" id="fileInput" accept="image/*" style="display:none">
+
+    <script src="js/utils.js"></script>
+    <script src="js/history.js"></script>
+    <script src="js/drawing.js"></script>
+    <script src="js/selection.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
