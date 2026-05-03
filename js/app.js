@@ -254,8 +254,10 @@ class PaintApp {
 
     // ---- Status Bar ----
     updateStatusPos(x, y) {
-        const el = PaintUtils.el('statusPos');
-        el.textContent = (x < 0 || y < 0) ? '' : `${x}, ${y}px`;
+        const key = `${x},${y}`;
+        if (key === this._lastPos) return;
+        this._lastPos = key;
+        PaintUtils.el('statusPos').textContent = (x < 0 || y < 0) ? '' : `${x}, ${y}px`;
     }
 
     updateStatusSize(w, h) {

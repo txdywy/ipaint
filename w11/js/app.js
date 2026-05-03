@@ -142,8 +142,15 @@ class W11Paint {
             this.ctrlKey = e.ctrlKey;
             this.shiftKey = e.shiftKey;
 
+            if (e.key === 'Enter' && !e.shiftKey && this._textCommit) {
+                this._textCommit(); this._textCommit = null;
+                PaintUtils.el('textInput').blur();
+                return;
+            }
+
             if (e.key === 'Escape') {
-                if (this.drawing.drawing) this.drawing.cancel();
+                if (this._textCommit) { this._textCommit(); this._textCommit = null; }
+                else if (this.drawing.drawing) this.drawing.cancel();
                 else if (this.selection.hasSelection) this.selection.commit();
                 PaintUtils.el('contextMenu').style.display = 'none';
                 document.querySelectorAll('.w11-dialog').forEach(d => d.style.display = 'none');
@@ -168,7 +175,9 @@ class W11Paint {
                 return;
             }
 
-            // Tool shortcuts
+            // Tool shortcuts (skip if text input is focused)
+            const tag = document.activeElement?.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
             const toolMap = { p: 'pencil', b: 'brush', e: 'eraser', g: 'fill', t: 'text', i: 'pickColor', m: 'magnifier' };
             if (toolMap[e.key.toLowerCase()] && !e.ctrlKey && !e.altKey) {
                 this.setTool(toolMap[e.key.toLowerCase()]);
@@ -193,10 +202,12 @@ class W11Paint {
         });
 
         PaintUtils.el('colorPrimary').addEventListener('click', () => {
+            this.ui._cpTarget = 'fg';
             this.ui._cpSetHex(this.fgColor);
             this.ui.openDialog('colorDlg');
         });
         PaintUtils.el('colorSecondary').addEventListener('click', () => {
+            this.ui._cpTarget = 'bg';
             this.ui._cpSetHex(this.bgColor);
             this.ui.openDialog('colorDlg');
         });
@@ -256,7 +267,10 @@ class W11Paint {
     }
 
     newFile() {
-        if (this.isDirty && !confirm('Save changes?')) return;
+        if (this.isDirty) {
+            if (!confirm('Save changes?')) return;
+            this.saveFile();
+        }
         this.history.clear();
         this.mainCtx.fillStyle = '#FFFFFF';
         this.mainCtx.fillRect(0, 0, this.mainCanvas.width, this.mainCanvas.height);
@@ -354,6 +368,9 @@ class W11Paint {
 
     // ---- Text Tool ----
     _startText(x, y) {
+        // Commit previous text if active
+        if (this._textCommit) { this._textCommit(); this._textCommit = null; }
+
         this.history.saveState();
         const box = PaintUtils.el('textBox');
         const input = PaintUtils.el('textInput');
@@ -366,7 +383,7 @@ class W11Paint {
         input.style.color = this.fgColor;
         setTimeout(() => input.focus(), 0);
 
-        const commit = () => {
+        this._textCommit = () => {
             if (input.value.trim()) {
                 const ctx = this.mainCtx;
                 ctx.fillStyle = this.fgColor;
@@ -378,13 +395,16 @@ class W11Paint {
                 this.isDirty = true;
             }
             box.style.display = 'none';
-            input.removeEventListener('blur', commit);
+            this._textCommit = null;
         };
-        input.addEventListener('blur', commit);
+        input.addEventListener('blur', this._textCommit, { once: true });
     }
 
     // ---- Status ----
     _updateCoords(x, y) {
+        const key = `${x},${y}`;
+        if (key === this._lastCoord) return;
+        this._lastCoord = key;
         PaintUtils.el('statusCoords').textContent = (x < 0 || y < 0) ? '' : `${x}, ${y}px`;
     }
 

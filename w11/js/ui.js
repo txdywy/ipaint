@@ -111,9 +111,13 @@ class UIManager {
         const rh = PaintUtils.el('resizeH');
         const ra = PaintUtils.el('resizeAspect');
         if (rw && rh && ra) {
-            const ratio = 800 / 600;
-            rw.addEventListener('input', () => { if (ra.checked) rh.value = Math.round(rw.value / ratio); });
-            rh.addEventListener('input', () => { if (ra.checked) rw.value = Math.round(rh.value * ratio); });
+            let ratio = this.app.mainCanvas.width / this.app.mainCanvas.height;
+            rw.addEventListener('input', () => {
+                if (ra.checked) { ratio = this.app.mainCanvas.width / this.app.mainCanvas.height; rh.value = Math.round(rw.value / ratio); }
+            });
+            rh.addEventListener('input', () => {
+                if (ra.checked) { ratio = this.app.mainCanvas.width / this.app.mainCanvas.height; rw.value = Math.round(rh.value * ratio); }
+            });
         }
     }
 
@@ -179,6 +183,7 @@ class UIManager {
         this.cpDraggingHS = false; this.cpDraggingLum = false;
         this._cpLastLum = -1;
         this._cpHsData = null;
+        this._cpTarget = 'fg';
 
         const hsCanvas = PaintUtils.el('hueSatCanvas');
         const lumCanvas = PaintUtils.el('lumCanvas');
@@ -356,7 +361,9 @@ class UIManager {
 
     cpConfirmColor() {
         const rgb = PaintUtils.hslToRgb(this.cpHue, this.cpSat, this.cpLum);
-        this.app.fgColor = PaintUtils.rgbaToHex(rgb.r, rgb.g, rgb.b);
+        const hex = PaintUtils.rgbaToHex(rgb.r, rgb.g, rgb.b);
+        if (this._cpTarget === 'bg') this.app.bgColor = hex;
+        else this.app.fgColor = hex;
         this.app.updateColors();
     }
 }
