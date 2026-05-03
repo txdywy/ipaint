@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>untitled - Paint</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Title Bar -->
+    <div class="title-bar">
+        <div class="title-bar-icon">
+            <img src="icons/paint-icon.svg" width="16" height="16" alt="">
+        </div>
+        <div class="title-bar-text">untitled - Paint</div>
+        <div class="title-bar-controls">
+            <button class="btn-minimize" aria-label="Minimize"></button>
+            <button class="btn-maximize" aria-label="Maximize"></button>
+            <button class="btn-close" aria-label="Close"></button>
+        </div>
+    </div>
+
+    <!-- Menu Bar -->
+    <div class="menu-bar" id="menuBar">
+        <div class="menu-item" data-menu="file">
+            <span class="menu-underline">F</span>ile
+            <div class="menu-dropdown" id="menu-file">
+                <div class="menu-entry" data-action="new"><span class="menu-key">Ctrl+N</span>New</div>
+                <div class="menu-entry" data-action="open"><span class="menu-key">Ctrl+O</span>Open...</div>
+                <div class="menu-entry" data-action="save"><span class="menu-key">Ctrl+S</span>Save</div>
+                <div class="menu-entry" data-action="saveAs">Save As...</div>
+                <div class="menu-separator"></div>
+                <div class="menu-entry" data-action="printPreview">Print Preview</div>
+                <div class="menu-entry" data-action="print"><span class="menu-key">Ctrl+P</span>Print...</div>
+                <div class="menu-separator"></div>
+                <div class="menu-entry" data-action="setWallpaperTiled">Set As Wallpaper (Tiled)</div>
+                <div class="menu-entry" data-action="setWallpaperCentered">Set As Wallpaper (Centered)</div>
+                <div class="menu-separator"></div>
+                <div class="menu-entry" data-action="exit">Exit</div>
+            </div>
+        </div>
+        <div class="menu-item" data-menu="edit">
+            <span class="menu-underline">E</span>dit
+            <div class="menu-dropdown" id="menu-edit">
+                <div class="menu-entry" data-action="undo"><span class="menu-key">Ctrl+Z</span>Undo</div>
+                <div class="menu-entry" data-action="redo"><span class="menu-key">Ctrl+Y</span>Repeat</div>
+                <div class="menu-separator"></div>
+                <div class="menu-entry" data-action="cut"><span class="menu-key">Ctrl+X</span>Cut</div>
+                <div class="menu-entry" data-action="copy"><span class="menu-key">Ctrl+C</span>Copy</div>
+                <div class="menu-entry" data-action="paste"><span class="menu-key">Ctrl+V</span>Paste</div>
+                <div class="menu-entry" data-action="clearSelection"><span class="menu-key">Del</span>Clear Selection</div>
+                <div class="menu-entry" data-action="selectAll"><span class="menu-key">Ctrl+A</span>Select All</div>
+                <div class="menu-separator"></div>
+                <div class="menu-entry" data-action="copyTo">Copy To...</div>
+                <div class="menu-entry" data-action="pasteFrom">Paste From...</div>
+            </div>
+        </div>
+        <div class="menu-item" data-menu="view">
+            <span class="menu-underline">V</span>iew
+            <div class="menu-dropdown" id="menu-view">
+                <div class="menu-entry has-check" data-action="toggleToolBox" data-checked="true">Tool Box</div>
+                <div class="menu-entry has-check" data-action="toggleColorBox" data-checked="true">Color Box</div>
+                <div class="menu-entry has-check" data-action="toggleStatusBar" data-checked="true">Status Bar</div>
+                <div class="menu-separator"></div>
+                <div class="menu-entry" data-action="zoomIn">Zoom In</div>
+                <div class="menu-entry" data-action="zoomOut">Zoom Out</div>
+                <div class="menu-entry" data-action="viewBitmap"><span class="menu-key">Ctrl+F</span>View Bitmap</div>
+            </div>
+        </div>
+        <div class="menu-item" data-menu="image">
+            <span class="menu-underline">I</span>mage
+            <div class="menu-dropdown" id="menu-image">
+                <div class="menu-entry" data-action="flipRotate"><span class="menu-key">Ctrl+R</span>Flip/Rotate...</div>
+                <div class="menu-entry" data-action="stretchSkew"><span class="menu-key">Ctrl+W</span>Stretch/Skew...</div>
+                <div class="menu-entry" data-action="invertColors"><span class="menu-key">Ctrl+I</span>Invert Colors</div>
+                <div class="menu-entry" data-action="attributes"><span class="menu-key">Ctrl+E</span>Attributes...</div>
+                <div class="menu-entry" data-action="clearImage"><span class="menu-key">Ctrl+Shift+N</span>Clear Image</div>
+                <div class="menu-entry" data-action="drawOpaque">Draw Opaque</div>
+            </div>
+        </div>
+        <div class="menu-item" data-menu="colors">
+            <span class="menu-underline">C</span>olors
+            <div class="menu-dropdown" id="menu-colors">
+                <div class="menu-entry" data-action="editColors">Edit Colors...</div>
+            </div>
+        </div>
+        <div class="menu-item" data-menu="help">
+            <span class="menu-underline">H</span>elp
+            <div class="menu-dropdown" id="menu-help">
+                <div class="menu-entry" data-action="helpTopics">Help Topics</div>
+                <div class="menu-separator"></div>
+                <div class="menu-entry" data-action="aboutPaint">About Paint</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <!-- Toolbox -->
+        <div class="toolbox" id="toolbox">
+            <div class="toolbox-inner">
+                <div class="tool-button" data-tool="freeSelect" title="Free-Form Select">
+                    <svg viewBox="0 0 16 16"><path d="M2 14C2 14 3 2 8 2C13 2 14 10 14 10" stroke="currentColor" fill="none" stroke-width="1" stroke-dasharray="2,2"/></svg>
+                </div>
+                <div class="tool-button" data-tool="rectSelect" title="Select">
+                    <svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" stroke="currentColor" fill="none" stroke-width="1" stroke-dasharray="2,2"/></svg>
+                </div>
+                <div class="tool-button" data-tool="eraser" title="Eraser/Color Eraser">
+                    <svg viewBox="0 0 16 16"><rect x="3" y="6" width="10" height="7" fill="currentColor" opacity="0.3"/><rect x="3" y="6" width="10" height="3" fill="currentColor"/><line x1="3" y1="13" x2="13" y2="13" stroke="currentColor" stroke-width="1"/></svg>
+                </div>
+                <div class="tool-button" data-tool="fill" title="Fill With Color">
+                    <svg viewBox="0 0 16 16"><path d="M4 12L2 10L8 4L12 8L6 14H4Z" fill="none" stroke="currentColor" stroke-width="1"/><path d="M12 8L14 10C14 10 15 11 14 12C13 13 12 12 12 12L10 10Z" fill="currentColor"/></svg>
+                </div>
+                <div class="tool-button" data-tool="pickColor" title="Pick Color">
+                    <svg viewBox="0 0 16 16"><path d="M3 13L7 9L9 11L5 15H3Z" fill="currentColor"/><line x1="7" y1="9" x2="12" y2="4" stroke="currentColor" stroke-width="1.5"/></svg>
+                </div>
+                <div class="tool-button" data-tool="magnifier" title="Magnifier">
+                    <svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4" stroke="currentColor" fill="none" stroke-width="1.5"/><line x1="10" y1="10" x2="14" y2="14" stroke="currentColor" stroke-width="2"/></svg>
+                </div>
+                <div class="tool-button active" data-tool="pencil" title="Pencil">
+                    <svg viewBox="0 0 16 16"><line x1="3" y1="13" x2="12" y2="4" stroke="currentColor" stroke-width="1.5"/><polygon points="12,4 14,2 13,1 11,3" fill="currentColor"/><line x1="2" y1="14" x2="4" y2="12" stroke="currentColor" stroke-width="1"/></svg>
+                </div>
+                <div class="tool-button" data-tool="brush" title="Brush">
+                    <svg viewBox="0 0 16 16"><path d="M4 14C4 12 6 10 8 8L10 6C11 5 12 4 12 3C12 2 11 2 10 3L4 9C3 10 2 12 2 13C2 14 3 14 4 14Z" fill="currentColor"/></svg>
+                </div>
+                <div class="tool-button" data-tool="airbrush" title="Airbrush">
+                    <svg viewBox="0 0 16 16"><circle cx="8" cy="3" r="0.5" fill="currentColor"/><circle cx="6" cy="5" r="0.5" fill="currentColor"/><circle cx="10" cy="4" r="0.5" fill="currentColor"/><circle cx="7" cy="2" r="0.5" fill="currentColor"/><circle cx="9" cy="6" r="0.5" fill="currentColor"/><circle cx="5" cy="3" r="0.5" fill="currentColor"/><circle cx="11" cy="3" r="0.5" fill="currentColor"/><circle cx="7" cy="6" r="0.5" fill="currentColor"/><circle cx="9" cy="2" r="0.5" fill="currentColor"/><path d="M7 12L7 8" stroke="currentColor" stroke-width="2"/><rect x="6" y="12" width="4" height="3" fill="currentColor" rx="1"/></svg>
+                </div>
+                <div class="tool-button" data-tool="text" title="Text">
+                    <svg viewBox="0 0 16 16"><text x="3" y="13" font-family="serif" font-size="14" font-weight="bold" fill="currentColor">A</text></svg>
+                </div>
+                <div class="tool-button" data-tool="line" title="Line">
+                    <svg viewBox="0 0 16 16"><line x1="2" y1="14" x2="14" y2="2" stroke="currentColor" stroke-width="1.5"/></svg>
+                </div>
+                <div class="tool-button" data-tool="curve" title="Curve">
+                    <svg viewBox="0 0 16 16"><path d="M2 12C6 2 10 14 14 4" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
+                </div>
+                <div class="tool-button" data-tool="rectangle" title="Rectangle">
+                    <svg viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
+                </div>
+                <div class="tool-button" data-tool="polygon" title="Polygon">
+                    <svg viewBox="0 0 16 16"><polygon points="8,2 14,12 2,12" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
+                </div>
+                <div class="tool-button" data-tool="ellipse" title="Ellipse">
+                    <svg viewBox="0 0 16 16"><ellipse cx="8" cy="8" rx="6" ry="5" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
+                </div>
+                <div class="tool-button" data-tool="roundRect" title="Rounded Rectangle">
+                    <svg viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="3" ry="3" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
+                </div>
+            </div>
+            <!-- Line Width / Brush Shape selector -->
+            <div class="tool-options" id="toolOptions">
+                <div class="line-width-options" id="lineWidthOptions" style="display:none;">
+                    <div class="lw-option" data-width="1"><div style="height:1px"></div></div>
+                    <div class="lw-option" data-width="2"><div style="height:2px"></div></div>
+                    <div class="lw-option" data-width="3"><div style="height:3px"></div></div>
+                    <div class="lw-option" data-width="4"><div style="height:4px"></div></div>
+                    <div class="lw-option" data-width="5"><div style="height:5px"></div></div>
+                </div>
+                <div class="brush-shape-options" id="brushShapeOptions" style="display:none;">
+                    <div class="brush-option active" data-shape="circle" data-size="1"><svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="1" fill="black"/></svg></div>
+                    <div class="brush-option" data-shape="circle" data-size="3"><svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="3" fill="black"/></svg></div>
+                    <div class="brush-option" data-shape="circle" data-size="5"><svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="black"/></svg></div>
+                    <div class="brush-option" data-shape="circle" data-size="7"><svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="black"/></svg></div>
+                    <div class="brush-option" data-shape="square" data-size="1"><svg viewBox="0 0 10 10"><rect x="4" y="4" width="2" height="2" fill="black"/></svg></div>
+                    <div class="brush-option" data-shape="square" data-size="3"><svg viewBox="0 0 10 10"><rect x="3" y="3" width="4" height="4" fill="black"/></svg></div>
+                    <div class="brush-option" data-shape="fslash" data-size="5"><svg viewBox="0 0 10 10"><line x1="2" y1="8" x2="8" y2="2" stroke="black" stroke-width="2"/></svg></div>
+                    <div class="brush-option" data-shape="bslash" data-size="5"><svg viewBox="0 0 10 10"><line x1="2" y1="2" x2="8" y2="8" stroke="black" stroke-width="2"/></svg></div>
+                </div>
+                <div class="eraser-size-options" id="eraserSizeOptions" style="display:none;">
+                    <div class="eraser-option active" data-size="4"><svg viewBox="0 0 10 10"><rect x="3" y="3" width="4" height="4" fill="white" stroke="black" stroke-width="0.5"/></svg></div>
+                    <div class="eraser-option" data-size="6"><svg viewBox="0 0 10 10"><rect x="2" y="2" width="6" height="6" fill="white" stroke="black" stroke-width="0.5"/></svg></div>
+                    <div class="eraser-option" data-size="8"><svg viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" fill="white" stroke="black" stroke-width="0.5"/></svg></div>
+                    <div class="eraser-option" data-size="10"><svg viewBox="0 0 10 10"><rect x="0" y="0" width="10" height="10" fill="white" stroke="black" stroke-width="0.5"/></svg></div>
+                </div>
+                <div class="magnifier-options" id="magnifierOptions" style="display:none;">
+                    <div class="mag-option" data-zoom="1">1x</div>
+                    <div class="mag-option active" data-zoom="2">2x</div>
+                    <div class="mag-option" data-zoom="6">6x</div>
+                    <div class="mag-option" data-zoom="8">8x</div>
+                </div>
+                <div class="fill-mode-options" id="fillModeOptions" style="display:none;">
+                    <div class="fill-option active" data-mode="outline" title="Outline only">
+                        <svg viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" stroke="black" fill="none" stroke-width="2"/></svg>
+                    </div>
+                    <div class="fill-option" data-mode="outlineFill" title="Outline and fill">
+                        <svg viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" stroke="black" fill="#aaa" stroke-width="2"/></svg>
+                    </div>
+                    <div class="fill-option" data-mode="fillOnly" title="Fill only">
+                        <svg viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" stroke="none" fill="#aaa" stroke-width="0"/></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas Area -->
+        <div class="canvas-area" id="canvasArea">
+            <div class="canvas-container" id="canvasContainer">
+                <canvas id="mainCanvas" width="640" height="480"></canvas>
+                <canvas id="overlayCanvas" width="640" height="480"></canvas>
+                <canvas id="selectionCanvas" width="640" height="480" style="display:none;"></canvas>
+                <!-- Selection box -->
+                <div class="selection-box" id="selectionBox" style="display:none;">
+                    <div class="selection-handle nw"></div>
+                    <div class="selection-handle ne"></div>
+                    <div class="selection-handle sw"></div>
+                    <div class="selection-handle se"></div>
+                </div>
+                <!-- Text input overlay -->
+                <div class="text-input-box" id="textInputBox" style="display:none;">
+                    <textarea id="textInput" spellcheck="false"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Color Palette -->
+    <div class="color-palette" id="colorPalette">
+        <div class="color-selector">
+            <div class="fg-bg-colors" id="fgBgColors">
+                <div class="bg-color" id="bgColorDisplay" title="Background color (right-click)"></div>
+                <div class="fg-color" id="fgColorDisplay" title="Foreground color (left-click)"></div>
+            </div>
+        </div>
+        <div class="color-grid" id="colorGrid">
+            <!-- Row 1 -->
+            <div class="color-cell" style="background:#000000" data-color="#000000"></div>
+            <div class="color-cell" style="background:#808080" data-color="#808080"></div>
+            <div class="color-cell" style="background:#800000" data-color="#800000"></div>
+            <div class="color-cell" style="background:#808000" data-color="#808000"></div>
+            <div class="color-cell" style="background:#008000" data-color="#008000"></div>
+            <div class="color-cell" style="background:#008080" data-color="#008080"></div>
+            <div class="color-cell" style="background:#000080" data-color="#000080"></div>
+            <div class="color-cell" style="background:#800080" data-color="#800080"></div>
+            <div class="color-cell" style="background:#808040" data-color="#808040"></div>
+            <div class="color-cell" style="background:#004040" data-color="#004040"></div>
+            <div class="color-cell" style="background:#0080FF" data-color="#0080FF"></div>
+            <div class="color-cell" style="background:#004080" data-color="#004080"></div>
+            <div class="color-cell" style="background:#8000FF" data-color="#8000FF"></div>
+            <div class="color-cell" style="background:#804000" data-color="#804000"></div>
+            <!-- Row 2 -->
+            <div class="color-cell" style="background:#FFFFFF" data-color="#FFFFFF"></div>
+            <div class="color-cell" style="background:#C0C0C0" data-color="#C0C0C0"></div>
+            <div class="color-cell" style="background:#FF0000" data-color="#FF0000"></div>
+            <div class="color-cell" style="background:#FFFF00" data-color="#FFFF00"></div>
+            <div class="color-cell" style="background:#00FF00" data-color="#00FF00"></div>
+            <div class="color-cell" style="background:#00FFFF" data-color="#00FFFF"></div>
+            <div class="color-cell" style="background:#0000FF" data-color="#0000FF"></div>
+            <div class="color-cell" style="background:#FF00FF" data-color="#FF00FF"></div>
+            <div class="color-cell" style="background:#FFFF80" data-color="#FFFF80"></div>
+            <div class="color-cell" style="background:#00FF80" data-color="#00FF80"></div>
+            <div class="color-cell" style="background:#80FFFF" data-color="#80FFFF"></div>
+            <div class="color-cell" style="background:#8080FF" data-color="#8080FF"></div>
+            <div class="color-cell" style="background:#FF0080" data-color="#FF0080"></div>
+            <div class="color-cell" style="background:#FF8040" data-color="#FF8040"></div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar" id="statusBar">
+        <div class="status-section status-help" id="statusHelp">For Help, click Help Topics on the Help Menu.</div>
+        <div class="status-section status-pos" id="statusPos"></div>
+        <div class="status-section status-size" id="statusSize"></div>
+    </div>
+
+    <!-- Dialogs -->
+    <div class="dialog-overlay" id="dialogOverlay" style="display:none;">
+        <!-- Attributes Dialog -->
+        <div class="dialog attributes-dialog" id="attributesDialog" style="display:none;">
+            <div class="dialog-title-bar">
+                <span>Attributes</span>
+                <button class="dialog-close" data-dialog="attributesDialog">&times;</button>
+            </div>
+            <div class="dialog-body">
+                <div class="dialog-row">
+                    <label>Width:</label>
+                    <input type="number" id="attrWidth" min="1" max="9999" value="640">
+                    <span>pixels</span>
+                </div>
+                <div class="dialog-row">
+                    <label>Height:</label>
+                    <input type="number" id="attrHeight" min="1" max="9999" value="480">
+                    <span>pixels</span>
+                </div>
+                <div class="dialog-row">
+                    <label>Units:</label>
+                    <label><input type="radio" name="attrUnits" value="pixels" checked> Pixels</label>
+                    <label><input type="radio" name="attrUnits" value="inches"> Inches</label>
+                    <label><input type="radio" name="attrUnits" value="cm"> cm</label>
+                </div>
+                <div class="dialog-row">
+                    <label>Colors:</label>
+                    <label><input type="radio" name="attrColors" value="color" checked> Colors</label>
+                    <label><input type="radio" name="attrColors" value="bw"> Black and White</label>
+                </div>
+            </div>
+            <div class="dialog-buttons">
+                <button class="dialog-btn primary" data-action="ok" data-dialog="attributesDialog">OK</button>
+                <button class="dialog-btn" data-action="cancel" data-dialog="attributesDialog">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Flip/Rotate Dialog -->
+        <div class="dialog flip-rotate-dialog" id="flipRotateDialog" style="display:none;">
+            <div class="dialog-title-bar">
+                <span>Flip and Rotate</span>
+                <button class="dialog-close" data-dialog="flipRotateDialog">&times;</button>
+            </div>
+            <div class="dialog-body">
+                <div class="dialog-row">
+                    <label><input type="radio" name="flipRotate" value="flipH" checked> Flip horizontal</label>
+                </div>
+                <div class="dialog-row">
+                    <label><input type="radio" name="flipRotate" value="flipV"> Flip vertical</label>
+                </div>
+                <div class="dialog-row">
+                    <label><input type="radio" name="flipRotate" value="rotateByAngle"> Rotate by angle</label>
+                    <label><input type="radio" name="rotateAngle" value="90" checked> 90</label>
+                    <label><input type="radio" name="rotateAngle" value="180"> 180</label>
+                    <label><input type="radio" name="rotateAngle" value="270"> 270</label>
+                </div>
+            </div>
+            <div class="dialog-buttons">
+                <button class="dialog-btn primary" data-action="ok" data-dialog="flipRotateDialog">OK</button>
+                <button class="dialog-btn" data-action="cancel" data-dialog="flipRotateDialog">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Stretch/Skew Dialog -->
+        <div class="dialog stretch-skew-dialog" id="stretchSkewDialog" style="display:none;">
+            <div class="dialog-title-bar">
+                <span>Stretch and Skew</span>
+                <button class="dialog-close" data-dialog="stretchSkewDialog">&times;</button>
+            </div>
+            <div class="dialog-body">
+                <fieldset>
+                    <legend>Stretch</legend>
+                    <div class="dialog-row">
+                        <label>Horizontal:</label>
+                        <input type="number" id="stretchH" value="100" min="1" max="500"> <span>%</span>
+                    </div>
+                    <div class="dialog-row">
+                        <label>Vertical:</label>
+                        <input type="number" id="stretchV" value="100" min="1" max="500"> <span>%</span>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>Skew</legend>
+                    <div class="dialog-row">
+                        <label>Horizontal:</label>
+                        <input type="number" id="skewH" value="0" min="-89" max="89"> <span>Degrees</span>
+                    </div>
+                    <div class="dialog-row">
+                        <label>Vertical:</label>
+                        <input type="number" id="skewV" value="0" min="-89" max="89"> <span>Degrees</span>
+                    </div>
+                </fieldset>
+            </div>
+            <div class="dialog-buttons">
+                <button class="dialog-btn primary" data-action="ok" data-dialog="stretchSkewDialog">OK</button>
+                <button class="dialog-btn" data-action="cancel" data-dialog="stretchSkewDialog">Cancel</button>
+            </div>
+        </div>
+
+        <!-- About Dialog -->
+        <div class="dialog about-dialog" id="aboutDialog" style="display:none;">
+            <div class="dialog-title-bar">
+                <span>About Paint</span>
+                <button class="dialog-close" data-dialog="aboutDialog">&times;</button>
+            </div>
+            <div class="dialog-body about-body">
+                <div class="about-icon">
+                    <img src="icons/paint-icon.svg" width="48" height="48" alt="">
+                </div>
+                <div class="about-text">
+                    <strong>Microsoft Paint</strong><br>
+                    Web Recreation<br><br>
+                    <small>Pure frontend clone of Windows Paint.<br>Built with HTML5 Canvas &amp; JavaScript.</small>
+                </div>
+            </div>
+            <div class="dialog-buttons">
+                <button class="dialog-btn primary" data-action="ok" data-dialog="aboutDialog">OK</button>
+            </div>
+        </div>
+
+        <!-- Color Picker Dialog -->
+        <div class="dialog color-picker-dialog" id="colorPickerDialog" style="display:none;">
+            <div class="dialog-title-bar">
+                <span>Edit Colors</span>
+                <button class="dialog-close" data-dialog="colorPickerDialog">&times;</button>
+            </div>
+            <div class="dialog-body color-picker-body">
+                <div class="cp-basic">
+                    <div class="cp-basic-grid" id="cpBasicGrid"></div>
+                </div>
+                <div class="cp-custom">
+                    <div class="cp-hue-sat" id="cpHueSat">
+                        <canvas id="cpHueSatCanvas" width="180" height="160"></canvas>
+                        <div class="cp-cursor" id="cpHueSatCursor"></div>
+                    </div>
+                    <div class="cp-luminance" id="cpLuminance">
+                        <canvas id="cpLumCanvas" width="20" height="160"></canvas>
+                        <div class="cp-lum-cursor" id="cpLumCursor"></div>
+                    </div>
+                    <div class="cp-preview">
+                        <div class="cp-preview-color" id="cpPreviewColor"></div>
+                        <div class="cp-values">
+                            <div class="cp-val-row"><label>H:</label><input type="number" id="cpH" min="0" max="360" value="0"></div>
+                            <div class="cp-val-row"><label>S:</label><input type="number" id="cpS" min="0" max="240" value="0"></div>
+                            <div class="cp-val-row"><label>L:</label><input type="number" id="cpL" min="0" max="240" value="0"></div>
+                            <div class="cp-val-row"><label>R:</label><input type="number" id="cpR" min="0" max="255" value="0"></div>
+                            <div class="cp-val-row"><label>G:</label><input type="number" id="cpG" min="0" max="255" value="0"></div>
+                            <div class="cp-val-row"><label>B:</label><input type="number" id="cpB" min="0" max="255" value="0"></div>
+                        </div>
+                    </div>
+                </div>
+                <button class="cp-custom-toggle" id="cpCustomToggle">Define Custom Colors &gt;&gt;</button>
+            </div>
+            <div class="dialog-buttons">
+                <button class="dialog-btn primary" data-action="ok" data-dialog="colorPickerDialog">OK</button>
+                <button class="dialog-btn" data-action="cancel" data-dialog="colorPickerDialog">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Bitmap Overlay -->
+    <div class="view-bitmap-overlay" id="viewBitmapOverlay" style="display:none;"></div>
+
+    <!-- Hidden file input -->
+    <input type="file" id="fileInput" accept="image/*" style="display:none">
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/history.js"></script>
+    <script src="js/tools.js"></script>
+    <script src="js/brush.js"></script>
+    <script src="js/shapes.js"></script>
+    <script src="js/selection.js"></script>
+    <script src="js/text-tool.js"></script>
+    <script src="js/color-picker.js"></script>
+    <script src="js/dialogs.js"></script>
+    <script src="js/menus.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
