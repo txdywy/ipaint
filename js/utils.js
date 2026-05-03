@@ -1,6 +1,10 @@
-// utils.js - Utility functions for Paint clone
+// utils.js - Utility functions for Paint clone (performance-optimized)
 
 const PaintUtils = {
+    // Pre-allocated buffers for bresenham (avoid GC pressure)
+    _lineBuf: null,
+    _lineBufSize: 0,
+
     // Convert hex color to RGBA object
     hexToRgba(hex) {
         hex = hex.replace('#', '');
@@ -15,42 +19,52 @@ const PaintUtils = {
         };
     },
 
+    // Fast hex parse (no object allocation)
+    hexToRgbValues(hex) {
+        hex = hex.replace('#', '');
+        if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+        return [
+            parseInt(hex.substr(0, 2), 16),
+            parseInt(hex.substr(2, 2), 16),
+            parseInt(hex.substr(4, 2), 16)
+        ];
+    },
+
     // Convert RGBA to hex
     rgbaToHex(r, g, b) {
-        return '#' + [r, g, b].map(x => {
-            const hex = Math.round(x).toString(16);
-            return hex.length === 1 ? '0' + hex : hex;
-        }).join('');
+        return '#' + (
+            ((1 << 24) + (Math.round(r) << 16) + (Math.round(g) << 8) + Math.round(b))
+            .toString(16).slice(1)
+        );
     },
 
     // HSL to RGB
     hslToRgb(h, s, l) {
-        h = h / 360;
-        s = s / 240;
-        l = l / 240;
+        h /= 360; s /= 240; l /= 240;
         let r, g, b;
         if (s === 0) {
             r = g = b = l;
         } else {
-            const hue2rgb = (p, q, t) => {
-                if (t < 0) t += 1;
-                if (t > 1) t -= 1;
-                if (t < 1/6) return p + (q - p) * 6 * t;
-                if (t < 1/2) return q;
-                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-                return p;
-            };
             const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
             const p = 2 * l - q;
-            r = hue2rgb(p, q, h + 1/3);
-            g = hue2rgb(p, q, h);
-            b = hue2rgb(p, q, h - 1/3);
+            r = PaintUtils._hue2rgb(p, q, h + 1/3);
+            g = PaintUtils._hue2rgb(p, q, h);
+            b = PaintUtils._hue2rgb(p, q, h - 1/3);
         }
         return {
-            r: Math.round(r * 255),
-            g: Math.round(g * 255),
-            b: Math.round(b * 255)
+            r: (r * 255 + 0.5) | 0,
+            g: (g * 255 + 0.5) | 0,
+            b: (b * 255 + 0.5) | 0
         };
+    },
+
+    _hue2rgb(p, q, t) {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
     },
 
     // RGB to HSL
@@ -76,9 +90,8 @@ const PaintUtils = {
         };
     },
 
-    // Bresenham's line algorithm - returns array of points
-    bresenhamLine(x0, y0, x1, y1) {
-        const points = [];
+    // Bresenham's line - draws directly via callback (zero allocation)
+    bresenhamLine(x0, y0, x1, y1, callback) {
         const dx = Math.abs(x1 - x0);
         const dy = Math.abs(y1 - y0);
         const sx = x0 < x1 ? 1 : -1;
@@ -86,31 +99,33 @@ const PaintUtils = {
         let err = dx - dy;
 
         while (true) {
-            points.push({ x: x0, y: y0 });
+            callback(x0, y0);
             if (x0 === x1 && y0 === y1) break;
             const e2 = 2 * err;
             if (e2 > -dy) { err -= dy; x0 += sx; }
             if (e2 < dx) { err += dx; y0 += sy; }
         }
-        return points;
     },
 
-    // Flood fill algorithm
+    // Scanline flood fill (much faster than pixel-by-pixel DFS)
     floodFill(imageData, startX, startY, fillColor, width, height) {
         const data = imageData.data;
-        const startIdx = (startY * width + startX) * 4;
+        const sx = startX | 0, sy = startY | 0;
+        if (sx < 0 || sx >= width || sy < 0 || sy >= height) return;
+
+        const startIdx = (sy * width + sx) * 4;
         const targetR = data[startIdx];
         const targetG = data[startIdx + 1];
         const targetB = data[startIdx + 2];
         const targetA = data[startIdx + 3];
 
-        const fill = PaintUtils.hexToRgba(fillColor);
+        const [fR, fG, fB] = PaintUtils.hexToRgbValues(fillColor);
 
         // Don't fill if same color
-        if (targetR === fill.r && targetG === fill.g && targetB === fill.b && targetA === fill.a) return;
+        if (targetR === fR && targetG === fG && targetB === fB && targetA === 255) return;
 
-        const stack = [[startX, startY]];
         const visited = new Uint8Array(width * height);
+        const stack = [sx, sy]; // flat array: [x1, y1, x2, y2, ...]
 
         const matches = (idx) => {
             return data[idx] === targetR &&
@@ -120,129 +135,80 @@ const PaintUtils = {
         };
 
         while (stack.length > 0) {
-            const [x, y] = stack.pop();
-            const pixelIdx = y * width + x;
+            const y = stack.pop();
+            const x = stack.pop();
 
             if (x < 0 || x >= width || y < 0 || y >= height) continue;
+            const pixelIdx = y * width + x;
             if (visited[pixelIdx]) continue;
-
             const idx = pixelIdx * 4;
             if (!matches(idx)) continue;
 
-            visited[pixelIdx] = 1;
-            data[idx] = fill.r;
-            data[idx + 1] = fill.g;
-            data[idx + 2] = fill.b;
-            data[idx + 3] = fill.a;
+            // Scan right
+            let rx = x;
+            while (rx < width) {
+                const ri = (y * width + rx) * 4;
+                if (!matches(ri) || visited[y * width + rx]) break;
+                rx++;
+            }
+            // Scan left
+            let lx = x - 1;
+            while (lx >= 0) {
+                const li = (y * width + lx) * 4;
+                if (!matches(li) || visited[y * width + lx]) break;
+                lx--;
+            }
+            lx++;
 
-            stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+            // Fill the span and push neighbors
+            for (let cx = lx; cx < rx; cx++) {
+                const ci = (y * width + cx) * 4;
+                visited[y * width + cx] = 1;
+                data[ci] = fR;
+                data[ci + 1] = fG;
+                data[ci + 2] = fB;
+                data[ci + 3] = 255;
+
+                // Push above and below
+                if (y > 0 && !visited[(y - 1) * width + cx]) {
+                    stack.push(cx, y - 1);
+                }
+                if (y < height - 1 && !visited[(y + 1) * width + cx]) {
+                    stack.push(cx, y + 1);
+                }
+            }
         }
     },
 
-    // Draw rectangle outline on canvas context
-    drawRectOutline(ctx, x, y, w, h, lineWidth, color) {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = lineWidth;
-        ctx.beginPath();
-        ctx.rect(x, y, w, h);
-        ctx.stroke();
-    },
-
-    // Draw filled rectangle
-    drawRectFilled(ctx, x, y, w, h, fillColor, strokeColor, lineWidth) {
-        ctx.fillStyle = fillColor;
-        ctx.fillRect(x, y, w, h);
-        if (strokeColor) {
-            ctx.strokeStyle = strokeColor;
-            ctx.lineWidth = lineWidth || 1;
-            ctx.beginPath();
-            ctx.rect(x, y, w, h);
-            ctx.stroke();
-        }
-    },
-
-    // Draw ellipse outline
-    drawEllipseOutline(ctx, cx, cy, rx, ry, lineWidth, color) {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = lineWidth;
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, Math.abs(rx), Math.abs(ry), 0, 0, Math.PI * 2);
-        ctx.stroke();
-    },
-
-    // Draw filled ellipse
-    drawEllipseFilled(ctx, cx, cy, rx, ry, fillColor, strokeColor, lineWidth) {
-        ctx.fillStyle = fillColor;
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, Math.abs(rx), Math.abs(ry), 0, 0, Math.PI * 2);
-        ctx.fill();
-        if (strokeColor) {
-            ctx.strokeStyle = strokeColor;
-            ctx.lineWidth = lineWidth || 1;
-            ctx.stroke();
-        }
-    },
-
-    // Draw rounded rectangle
-    drawRoundRect(ctx, x, y, w, h, radius, lineWidth, color, fillColor) {
-        const r = Math.min(radius, Math.abs(w) / 2, Math.abs(h) / 2);
-        const x1 = Math.min(x, x + w);
-        const y1 = Math.min(y, y + h);
-        const aw = Math.abs(w);
-        const ah = Math.abs(h);
-
-        ctx.beginPath();
-        ctx.moveTo(x1 + r, y1);
-        ctx.lineTo(x1 + aw - r, y1);
-        ctx.arcTo(x1 + aw, y1, x1 + aw, y1 + r, r);
-        ctx.lineTo(x1 + aw, y1 + ah - r);
-        ctx.arcTo(x1 + aw, y1 + ah, x1 + aw - r, y1 + ah, r);
-        ctx.lineTo(x1 + r, y1 + ah);
-        ctx.arcTo(x1, y1 + ah, x1, y1 + ah - r, r);
-        ctx.lineTo(x1, y1 + r);
-        ctx.arcTo(x1, y1, x1 + r, y1, r);
-        ctx.closePath();
-
-        if (fillColor) {
-            ctx.fillStyle = fillColor;
-            ctx.fill();
-        }
-        ctx.strokeStyle = color;
-        ctx.lineWidth = lineWidth;
-        ctx.stroke();
-    },
-
-    // Draw a point with size
-    drawPoint(ctx, x, y, size, color) {
-        ctx.fillStyle = color;
-        if (size <= 1) {
-            ctx.fillRect(Math.floor(x), Math.floor(y), 1, 1);
-        } else {
-            const half = size / 2;
-            ctx.fillRect(Math.floor(x - half), Math.floor(y - half), size, size);
-        }
-    },
-
-    // Get pixel color at position
+    // Get pixel color at position (optimized single-pixel read)
     getPixelColor(ctx, x, y) {
-        const pixel = ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
-        return PaintUtils.rgbaToHex(pixel[0], pixel[1], pixel[2]);
+        const d = ctx.getImageData(x | 0, y | 0, 1, 1).data;
+        return PaintUtils.rgbaToHex(d[0], d[1], d[2]);
     },
 
     // Airbrush spray pattern
     airbrushSpray(ctx, x, y, radius, density, color) {
         ctx.fillStyle = color;
+        const r2 = radius * radius;
         for (let i = 0; i < density; i++) {
-            const angle = Math.random() * Math.PI * 2;
+            const angle = Math.random() * 6.2832; // 2*PI
             const dist = Math.random() * radius;
-            const px = Math.floor(x + Math.cos(angle) * dist);
-            const py = Math.floor(y + Math.sin(angle) * dist);
-            ctx.fillRect(px, py, 1, 1);
+            ctx.fillRect(
+                (x + Math.cos(angle) * dist) | 0,
+                (y + Math.sin(angle) * dist) | 0,
+                1, 1
+            );
         }
     },
 
     // Clamp value
     clamp(val, min, max) {
-        return Math.max(min, Math.min(max, val));
+        return val < min ? min : val > max ? max : val;
+    },
+
+    // DOM element cache
+    _elCache: {},
+    el(id) {
+        return PaintUtils._elCache[id] || (PaintUtils._elCache[id] = document.getElementById(id));
     }
 };

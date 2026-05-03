@@ -1,4 +1,4 @@
-// selection.js - Selection tools
+// selection.js - Selection tools (optimized)
 
 class SelectionTools {
     constructor(app) {
@@ -12,34 +12,18 @@ class SelectionTools {
         this.movingSelection = false;
         this.moveOffsetX = 0;
         this.moveOffsetY = 0;
-        this.selectionType = 'rect'; // 'rect' or 'free'
+        this.selectionType = 'rect';
         this.freeSelectPoints = [];
+        this._tempCanvas = null; // cached for visual updates
     }
 
     onMouseDown(x, y, button) {
         const tool = this.app.toolManager.getTool();
 
-        if (tool === 'rectSelect') {
-            // If clicking inside existing selection, start moving
+        if (tool === 'rectSelect' || tool === 'freeSelect') {
             if (this.hasSelection && this.isInsideSelection(x, y)) {
-                this.movingSelection = true;
-                this.moveOffsetX = x - this.selectionRect.x;
-                this.moveOffsetY = y - this.selectionRect.y;
-                return;
-            }
-
-            // If we have a selection, commit it first
-            if (this.hasSelection) {
-                this.commitSelection();
-            }
-
-            this.selecting = true;
-            this.selectionType = 'rect';
-            this.startX = x;
-            this.startY = y;
-            this.selectionRect = { x, y, w: 0, h: 0 };
-        } else if (tool === 'freeSelect') {
-            if (this.hasSelection && this.isInsideSelection(x, y)) {
+                // Save state before moving so undo restores original position
+                this.app.history.saveState();
                 this.movingSelection = true;
                 this.moveOffsetX = x - this.selectionRect.x;
                 this.moveOffsetY = y - this.selectionRect.y;
@@ -51,27 +35,32 @@ class SelectionTools {
             }
 
             this.selecting = true;
-            this.selectionType = 'free';
-            this.freeSelectPoints = [{ x, y }];
+            this.selectionType = tool === 'rectSelect' ? 'rect' : 'free';
             this.startX = x;
             this.startY = y;
+
+            if (tool === 'rectSelect') {
+                this.selectionRect = { x, y, w: 0, h: 0 };
+            } else {
+                this.freeSelectPoints = [{ x, y }];
+            }
         }
     }
 
     onMouseMove(x, y) {
         if (this.movingSelection) {
-            const newX = x - this.moveOffsetX;
-            const newY = y - this.moveOffsetY;
-            this.selectionRect.x = newX;
-            this.selectionRect.y = newY;
-            this.updateSelectionVisual();
+            this.selectionRect.x = x - this.moveOffsetX;
+            this.selectionRect.y = y - this.moveOffsetY;
+            this._updateVisual();
             return;
         }
 
         if (!this.selecting) return;
 
         const overlay = this.app.overlayCtx;
-        overlay.clearRect(0, 0, this.app.overlayCanvas.width, this.app.overlayCanvas.height);
+        const ow = this.app.overlayCanvas.width;
+        const oh = this.app.overlayCanvas.height;
+        overlay.clearRect(0, 0, ow, oh);
 
         if (this.selectionType === 'rect') {
             const rx = Math.min(this.startX, x);
@@ -84,7 +73,6 @@ class SelectionTools {
             overlay.strokeStyle = '#000';
             overlay.lineWidth = 1;
             overlay.strokeRect(rx + 0.5, ry + 0.5, rw, rh);
-            overlay.setLineDash([4, 4]);
             overlay.lineDashOffset = 4;
             overlay.strokeStyle = '#fff';
             overlay.strokeRect(rx + 0.5, ry + 0.5, rw, rh);
@@ -108,6 +96,7 @@ class SelectionTools {
     onMouseUp(x, y) {
         if (this.movingSelection) {
             this.movingSelection = false;
+            this.app.isDirty = true;
             return;
         }
 
@@ -116,59 +105,48 @@ class SelectionTools {
 
         if (this.selectionType === 'rect') {
             if (this.selectionRect.w < 2 || this.selectionRect.h < 2) {
-                this.clearSelection();
+                this.resetSelectionState();
                 return;
             }
         } else {
-            // Free select - calculate bounding rect
             if (this.freeSelectPoints.length < 3) {
-                this.clearSelection();
+                this.resetSelectionState();
                 return;
             }
             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
             for (const p of this.freeSelectPoints) {
-                minX = Math.min(minX, p.x);
-                minY = Math.min(minY, p.y);
-                maxX = Math.max(maxX, p.x);
-                maxY = Math.max(maxY, p.y);
+                if (p.x < minX) minX = p.x;
+                if (p.y < minY) minY = p.y;
+                if (p.x > maxX) maxX = p.x;
+                if (p.y > maxY) maxY = p.y;
             }
             this.selectionRect = {
-                x: Math.floor(minX),
-                y: Math.floor(minY),
-                w: Math.ceil(maxX - minX),
-                h: Math.ceil(maxY - minY)
+                x: minX | 0, y: minY | 0,
+                w: (maxX - minX + 1) | 0, h: (maxY - minY + 1) | 0
             };
         }
 
-        // Extract selection data
-        this.extractSelection();
+        this._extract();
         this.hasSelection = true;
-        this.updateSelectionVisual();
+        this._updateVisual();
     }
 
-    extractSelection() {
+    _extract() {
         const r = this.selectionRect;
         if (r.w <= 0 || r.h <= 0) return;
-
         const ctx = this.app.mainCtx;
         this.selectionData = ctx.getImageData(r.x, r.y, r.w, r.h);
-
-        // Clear the selected area on main canvas (fill with bg color)
         ctx.fillStyle = this.app.bgColor;
         ctx.fillRect(r.x, r.y, r.w, r.h);
+        this._tempCanvas = null; // invalidate cache
     }
 
     commitSelection() {
         if (!this.hasSelection || !this.selectionData) return;
-
         const ctx = this.app.mainCtx;
         const r = this.selectionRect;
-
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = this.selectionData.width;
-        tempCanvas.height = this.selectionData.height;
-        tempCanvas.getContext('2d').putImageData(this.selectionData, 0, 0);
-        ctx.drawImage(tempCanvas, r.x, r.y);
+        const tc = this._getTempCanvas();
+        ctx.drawImage(tc, r.x, r.y);
         this.resetSelectionState();
     }
 
@@ -185,32 +163,36 @@ class SelectionTools {
         this.selectionData = null;
         this.selectionRect = null;
         this.freeSelectPoints = [];
-        document.getElementById('selectionBox').style.display = 'none';
+        this._tempCanvas = null;
+        PaintUtils.el('selectionBox').style.display = 'none';
         this.app.overlayCtx.clearRect(0, 0, this.app.overlayCanvas.width, this.app.overlayCanvas.height);
     }
 
-    updateSelectionVisual() {
+    _getTempCanvas() {
+        if (this._tempCanvas) return this._tempCanvas;
+        const tc = document.createElement('canvas');
+        tc.width = this.selectionData.width;
+        tc.height = this.selectionData.height;
+        tc.getContext('2d').putImageData(this.selectionData, 0, 0);
+        this._tempCanvas = tc;
+        return tc;
+    }
+
+    _updateVisual() {
         if (!this.hasSelection || !this.selectionRect) return;
         const r = this.selectionRect;
-        const selectionBox = document.getElementById('selectionBox');
-        const container = document.getElementById('canvasContainer');
+        const box = PaintUtils.el('selectionBox');
 
-        selectionBox.style.display = 'block';
-        selectionBox.style.left = r.x + 'px';
-        selectionBox.style.top = r.y + 'px';
-        selectionBox.style.width = r.w + 'px';
-        selectionBox.style.height = r.h + 'px';
+        box.style.display = 'block';
+        box.style.left = r.x + 'px';
+        box.style.top = r.y + 'px';
+        box.style.width = r.w + 'px';
+        box.style.height = r.h + 'px';
 
-        // Draw selection on overlay
         const overlay = this.app.overlayCtx;
         overlay.clearRect(0, 0, this.app.overlayCanvas.width, this.app.overlayCanvas.height);
-
         if (this.selectionData) {
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = this.selectionData.width;
-            tempCanvas.height = this.selectionData.height;
-            tempCanvas.getContext('2d').putImageData(this.selectionData, 0, 0);
-            overlay.drawImage(tempCanvas, r.x, r.y);
+            overlay.drawImage(this._getTempCanvas(), r.x, r.y);
         }
     }
 
@@ -223,9 +205,9 @@ class SelectionTools {
     selectAll() {
         const canvas = this.app.mainCanvas;
         this.selectionRect = { x: 0, y: 0, w: canvas.width, h: canvas.height };
-        this.extractSelection();
+        this._extract();
         this.hasSelection = true;
-        this.updateSelectionVisual();
+        this._updateVisual();
     }
 
     deleteSelection() {
@@ -235,15 +217,12 @@ class SelectionTools {
         const r = this.selectionRect;
         ctx.fillStyle = this.app.bgColor;
         ctx.fillRect(r.x, r.y, r.w, r.h);
-        this.clearSelection();
+        this.app.isDirty = true;
+        this.resetSelectionState();
     }
 
     copySelection() {
         if (!this.hasSelection || !this.selectionData) return null;
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = this.selectionData.width;
-        tempCanvas.height = this.selectionData.height;
-        tempCanvas.getContext('2d').putImageData(this.selectionData, 0, 0);
-        return tempCanvas;
+        return this._getTempCanvas();
     }
 }

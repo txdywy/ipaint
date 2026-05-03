@@ -1,9 +1,9 @@
-// history.js - Undo/Redo system using canvas snapshots
+// history.js - Undo/Redo system (optimized ring buffer)
 
 class PaintHistory {
-    constructor(canvas, maxSteps = 50) {
+    constructor(canvas, maxSteps = 30) {
         this.canvas = canvas;
-        this.ctx = canvas.getContext('2d');
+        this.ctx = canvas.getContext('2d', { willReadFrequently: true });
         this.maxSteps = maxSteps;
         this.undoStack = [];
         this.redoStack = [];
@@ -11,26 +11,19 @@ class PaintHistory {
     }
 
     saveState() {
-        const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-        this.undoStack.push({
-            imageData,
-            width: this.canvas.width,
-            height: this.canvas.height
-        });
+        const w = this.canvas.width, h = this.canvas.height;
+        const imageData = this.ctx.getImageData(0, 0, w, h);
+        this.undoStack.push({ imageData, width: w, height: h });
         if (this.undoStack.length > this.maxSteps) {
             this.undoStack.shift();
         }
-        this.redoStack = [];
+        this.redoStack.length = 0; // faster than = []
     }
 
     undo() {
         if (this.undoStack.length === 0) return false;
-        const currentState = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-        this.redoStack.push({
-            imageData: currentState,
-            width: this.canvas.width,
-            height: this.canvas.height
-        });
+        const cur = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        this.redoStack.push({ imageData: cur, width: this.canvas.width, height: this.canvas.height });
 
         const state = this.undoStack.pop();
         if (state.width !== this.canvas.width || state.height !== this.canvas.height) {
@@ -44,12 +37,8 @@ class PaintHistory {
 
     redo() {
         if (this.redoStack.length === 0) return false;
-        const currentState = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-        this.undoStack.push({
-            imageData: currentState,
-            width: this.canvas.width,
-            height: this.canvas.height
-        });
+        const cur = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        this.undoStack.push({ imageData: cur, width: this.canvas.width, height: this.canvas.height });
 
         const state = this.redoStack.pop();
         if (state.width !== this.canvas.width || state.height !== this.canvas.height) {
@@ -65,7 +54,7 @@ class PaintHistory {
     canRedo() { return this.redoStack.length > 0; }
 
     clear() {
-        this.undoStack = [];
-        this.redoStack = [];
+        this.undoStack.length = 0;
+        this.redoStack.length = 0;
     }
 }

@@ -1,4 +1,4 @@
-// color-picker.js - Color picker dialog
+// color-picker.js - Color picker dialog (optimized - cached gradients)
 
 class ColorPickerDialog {
     constructor(app) {
@@ -6,15 +6,19 @@ class ColorPickerDialog {
         this.targetIsBg = false;
         this.currentHue = 0;
         this.currentSat = 0;
-        this.currentLum = 120; // 0-240 range (MS Paint uses 0-240)
+        this.currentLum = 120;
         this.currentColor = '#000000';
         this.customColors = new Array(16).fill('#FFFFFF');
         this.customVisible = false;
 
-        this.hueSatCanvas = document.getElementById('cpHueSatCanvas');
-        this.lumCanvas = document.getElementById('cpLumCanvas');
+        this.hueSatCanvas = PaintUtils.el('cpHueSatCanvas');
+        this.lumCanvas = PaintUtils.el('cpLumCanvas');
         this.hueSatCtx = this.hueSatCanvas.getContext('2d');
         this.lumCtx = this.lumCanvas.getContext('2d');
+
+        // Cached gradient: only redraw when luminance changes
+        this._lastLum = -1;
+        this._hsImageData = null;
 
         this.isDraggingHueSat = false;
         this.isDraggingLum = false;
@@ -25,20 +29,20 @@ class ColorPickerDialog {
 
     show(targetIsBg) {
         this.targetIsBg = targetIsBg;
-        const currentColor = targetIsBg ? this.app.bgColor : this.app.fgColor;
-        this.setColorFromHex(currentColor);
+        this.setColorFromHex(targetIsBg ? this.app.bgColor : this.app.fgColor);
+        this._lastLum = -1; // force full redraw
         this.drawHueSat();
         this.drawLuminance();
         this.updatePreview();
         this.updateInputs();
 
-        document.getElementById('dialogOverlay').style.display = 'flex';
-        document.getElementById('colorPickerDialog').style.display = 'block';
+        PaintUtils.el('dialogOverlay').style.display = 'flex';
+        PaintUtils.el('colorPickerDialog').style.display = 'block';
     }
 
     hide() {
-        document.getElementById('dialogOverlay').style.display = 'none';
-        document.getElementById('colorPickerDialog').style.display = 'none';
+        PaintUtils.el('dialogOverlay').style.display = 'none';
+        PaintUtils.el('colorPickerDialog').style.display = 'none';
     }
 
     setColorFromHex(hex) {
@@ -51,18 +55,28 @@ class ColorPickerDialog {
     }
 
     drawHueSat() {
+        // Only redraw if luminance changed
+        if (this._lastLum === this.currentLum && this._hsImageData) {
+            this.hueSatCtx.putImageData(this._hsImageData, 0, 0);
+            return;
+        }
+        this._lastLum = this.currentLum;
+
         const ctx = this.hueSatCtx;
         const w = this.hueSatCanvas.width;
         const h = this.hueSatCanvas.height;
         const imageData = ctx.createImageData(w, h);
         const data = imageData.data;
 
+        // Pre-compute hue row offsets for speed
+        const lum = this.currentLum;
         for (let y = 0; y < h; y++) {
+            const sat = (y / h) * 240;
+            const rowOff = y * w * 4;
             for (let x = 0; x < w; x++) {
                 const hue = (x / w) * 360;
-                const sat = (y / h) * 240;
-                const rgb = PaintUtils.hslToRgb(hue, sat, this.currentLum);
-                const idx = (y * w + x) * 4;
+                const rgb = PaintUtils.hslToRgb(hue, sat, lum);
+                const idx = rowOff + x * 4;
                 data[idx] = rgb.r;
                 data[idx + 1] = rgb.g;
                 data[idx + 2] = rgb.b;
@@ -70,6 +84,7 @@ class ColorPickerDialog {
             }
         }
         ctx.putImageData(imageData, 0, 0);
+        this._hsImageData = imageData;
     }
 
     drawLuminance() {
@@ -78,12 +93,15 @@ class ColorPickerDialog {
         const h = this.lumCanvas.height;
         const imageData = ctx.createImageData(w, h);
         const data = imageData.data;
+        const hue = this.currentHue;
+        const sat = this.currentSat;
 
         for (let y = 0; y < h; y++) {
             const lum = (y / h) * 240;
-            const rgb = PaintUtils.hslToRgb(this.currentHue, this.currentSat, lum);
+            const rgb = PaintUtils.hslToRgb(hue, sat, lum);
+            const rowOff = y * w * 4;
             for (let x = 0; x < w; x++) {
-                const idx = (y * w + x) * 4;
+                const idx = rowOff + x * 4;
                 data[idx] = rgb.r;
                 data[idx + 1] = rgb.g;
                 data[idx + 2] = rgb.b;
@@ -96,24 +114,21 @@ class ColorPickerDialog {
     updatePreview() {
         const rgb = PaintUtils.hslToRgb(this.currentHue, this.currentSat, this.currentLum);
         this.currentColor = PaintUtils.rgbaToHex(rgb.r, rgb.g, rgb.b);
-        document.getElementById('cpPreviewColor').style.background = this.currentColor;
+        PaintUtils.el('cpPreviewColor').style.background = this.currentColor;
 
-        // Update cursor positions
-        const hsCursor = document.getElementById('cpHueSatCursor');
-        const lumCursor = document.getElementById('cpLumCursor');
-        hsCursor.style.left = (this.currentHue / 360 * 180) + 'px';
-        hsCursor.style.top = (this.currentSat / 240 * 160) + 'px';
-        lumCursor.style.top = (this.currentLum / 240 * 160) + 'px';
+        PaintUtils.el('cpHueSatCursor').style.left = (this.currentHue / 360 * 180) + 'px';
+        PaintUtils.el('cpHueSatCursor').style.top = (this.currentSat / 240 * 160) + 'px';
+        PaintUtils.el('cpLumCursor').style.top = (this.currentLum / 240 * 160) + 'px';
     }
 
     updateInputs() {
         const rgb = PaintUtils.hslToRgb(this.currentHue, this.currentSat, this.currentLum);
-        document.getElementById('cpH').value = Math.round(this.currentHue);
-        document.getElementById('cpS').value = Math.round(this.currentSat);
-        document.getElementById('cpL').value = Math.round(this.currentLum);
-        document.getElementById('cpR').value = rgb.r;
-        document.getElementById('cpG').value = rgb.g;
-        document.getElementById('cpB').value = rgb.b;
+        PaintUtils.el('cpH').value = Math.round(this.currentHue);
+        PaintUtils.el('cpS').value = Math.round(this.currentSat);
+        PaintUtils.el('cpL').value = Math.round(this.currentLum);
+        PaintUtils.el('cpR').value = rgb.r;
+        PaintUtils.el('cpG').value = rgb.g;
+        PaintUtils.el('cpB').value = rgb.b;
     }
 
     buildBasicColors() {
@@ -128,9 +143,10 @@ class ColorPickerDialog {
             '#004080', '#8040FF', '#FF8040', '#40FF80'
         ];
 
-        const grid = document.getElementById('cpBasicGrid');
+        const grid = PaintUtils.el('cpBasicGrid');
         grid.innerHTML = '';
-        basicColors.forEach(color => {
+        for (let i = 0; i < basicColors.length; i++) {
+            const color = basicColors[i];
             const cell = document.createElement('div');
             cell.className = 'cp-basic-cell';
             cell.style.background = color;
@@ -143,17 +159,15 @@ class ColorPickerDialog {
                 this.updateInputs();
             });
             grid.appendChild(cell);
-        });
+        }
     }
 
     setupEvents() {
-        // Hue/Saturation picker
         this.hueSatCanvas.addEventListener('mousedown', (e) => {
             this.isDraggingHueSat = true;
             this.updateHueSatFromMouse(e);
         });
 
-        // Luminance picker
         this.lumCanvas.addEventListener('mousedown', (e) => {
             this.isDraggingLum = true;
             this.updateLumFromMouse(e);
@@ -169,12 +183,11 @@ class ColorPickerDialog {
             this.isDraggingLum = false;
         });
 
-        // HSL/RGB input changes
         ['cpH', 'cpS', 'cpL'].forEach(id => {
-            document.getElementById(id).addEventListener('change', () => {
-                this.currentHue = parseInt(document.getElementById('cpH').value) || 0;
-                this.currentSat = parseInt(document.getElementById('cpS').value) || 0;
-                this.currentLum = parseInt(document.getElementById('cpL').value) || 0;
+            PaintUtils.el(id).addEventListener('change', () => {
+                this.currentHue = parseInt(PaintUtils.el('cpH').value) || 0;
+                this.currentSat = parseInt(PaintUtils.el('cpS').value) || 0;
+                this.currentLum = parseInt(PaintUtils.el('cpL').value) || 0;
                 this.drawHueSat();
                 this.drawLuminance();
                 this.updatePreview();
@@ -183,10 +196,10 @@ class ColorPickerDialog {
         });
 
         ['cpR', 'cpG', 'cpB'].forEach(id => {
-            document.getElementById(id).addEventListener('change', () => {
-                const r = parseInt(document.getElementById('cpR').value) || 0;
-                const g = parseInt(document.getElementById('cpG').value) || 0;
-                const b = parseInt(document.getElementById('cpB').value) || 0;
+            PaintUtils.el(id).addEventListener('change', () => {
+                const r = parseInt(PaintUtils.el('cpR').value) || 0;
+                const g = parseInt(PaintUtils.el('cpG').value) || 0;
+                const b = parseInt(PaintUtils.el('cpB').value) || 0;
                 const hsl = PaintUtils.rgbToHsl(r, g, b);
                 this.currentHue = hsl.h;
                 this.currentSat = hsl.s;
@@ -198,10 +211,9 @@ class ColorPickerDialog {
             });
         });
 
-        // Custom colors toggle
-        document.getElementById('cpCustomToggle').addEventListener('click', () => {
+        PaintUtils.el('cpCustomToggle').addEventListener('click', () => {
             this.customVisible = !this.customVisible;
-            document.getElementById('cpCustomToggle').textContent =
+            PaintUtils.el('cpCustomToggle').textContent =
                 this.customVisible ? '<< Define Custom Colors' : 'Define Custom Colors >>';
         });
     }
@@ -221,16 +233,14 @@ class ColorPickerDialog {
         const rect = this.lumCanvas.getBoundingClientRect();
         const y = PaintUtils.clamp(e.clientY - rect.top, 0, rect.height - 1);
         this.currentLum = (y / rect.height) * 240;
+        this.drawLuminance();
         this.updatePreview();
         this.updateInputs();
     }
 
     confirm() {
-        if (this.targetIsBg) {
-            this.app.bgColor = this.currentColor;
-        } else {
-            this.app.fgColor = this.currentColor;
-        }
+        if (this.targetIsBg) this.app.bgColor = this.currentColor;
+        else this.app.fgColor = this.currentColor;
         this.app.updateColorDisplay();
         this.hide();
     }
